@@ -1,6 +1,3 @@
-import numpy as np
-import pyvisa
-from pyvisa import VisaIOError
 import time
 import numpy as np
 
