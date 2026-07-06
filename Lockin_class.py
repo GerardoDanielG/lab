@@ -1,13 +1,15 @@
-import numpy as np
-import pyvisa
-from pyvisa import VisaIOError 
 import time
+import numpy as np
 
 class lockin():
-    def __init__(self, lockin, Rbias):
+    def __init__(self, lockin, lakeshore, Rbias):
         self.lockin = lockin
-        self.Rbias = Rbias 
+        self.lakeshore = lakeshore
+        self.Rbias = Rbias
         
+    def set_output(self, n = 1):
+        self.lockin.write(f"ISRC {n}")
+    
     def set_voltage(self, voltage): # ex set_voltage(0.100) sets to 100 mV
         self.lockin.write(f"SLVL {voltage}")
 
@@ -32,9 +34,6 @@ class lockin():
     def read_theta(self):
         return float(self.lockin.query("OUTP? 3"))
     
-    def read_ab(self):
-        return float(self.lockin.query(""))
-    
     def calculate_current(self):
         V = self.read_voltage()
         return V / self.Rbias
@@ -43,24 +42,65 @@ class lockin():
         voltage = self.read_r()
         current = self.calculate_current()
         return voltage / current # == R = I/V
+
+    def read_temperature(self):
+        return float(self.lakeshore.query("KRDG? 0"))
+
+    def initialize(self, v, f, n=1):
+        self.set_voltage(voltage=v)
+        self.set_frequency(freq=f)
+        self.set_output(n=n)
+        self.lockin.write("IRNG 1V")
+        self.lockin.write("SCAL 0")
     
-    def log_data(self, filename):
+    def log_data(self, filename, sampling_spacing = 1, init_sleep = 30, **kwargs):
+        """
+        Parameters
+        ----------
+        filename : float
+            Text file path to save calibration.
+        sampling_spacing : float, optional
+            Obtains data after x seconds of waiting.
+        init_sleep : float, optional
+            Time (seconds) to sleep before collecting data. For lock-in
+            to stabilize after **`initilize`**.
+        kwargs : dict\n
+            acceptable parameters:\n
+                - seconds
+                - minutes
+                - hours
+                - days
+        """
+
+        time.sleep(init_sleep)
+
+        if "seconds" in kwargs:
+            N = kwargs["seconds"] / sampling_spacing
+        elif "minutes" in kwargs:
+            N = 60 * kwargs["minutes"] / sampling_spacing
+        elif "hours" in kwargs:
+            N = 3600 * kwargs["hours"] / sampling_spacing
+        elif "days" in kwargs:
+            N = 24 * 3600 * kwargs["days"] / sampling_spacing
+        else:
+            print("what?")
+
+        header = ["Phase", "Resistance (Ohms)", "Temperature (K)"]
         with open(filename, 'a') as file:
             file.write(
-                "Theta  SampleR"
+                "\t".join(header)
             )
-            i= 0
-            while i<5:
-                theta = self.read_theta()
-                sampleR = self.calculate_sample_resistance()
-
-                file.write (
-                    f"{theta}   "
-                    f"{sampleR}\n"
+            file.write("\n")
+            i = 0
+            while i<N:
+                np.savetxt(
+                    file,
+                    np.array([
+                        self.read_theta(),
+                        self.calculate_sample_resistance(), 
+                        self.read_temperature()
+                    ]).reshape(1, -1),
+                    delimiter="\t"
                 )
-                time.sleep(1)
+                time.sleep(sampling_spacing)
                 i+=1
-
-
-
-    ## add all the other functions here
