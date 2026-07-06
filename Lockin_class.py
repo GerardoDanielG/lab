@@ -43,15 +43,18 @@ class lockin():
         current = self.calculate_current()
         return voltage / current # == R = I/V
 
-    def read_temperature(self):
-        return float(self.lakeshore.query("KRDG? 0"))
+    def read_temperature(self, is_lakeshore = True):
+        if is_lakeshore:
+            return float(self.lakeshore.query("KRDG? 0"))
+        else:
+            return float(self.lakeshore.query("2B?"))
 
     def initialize(self, v, f, n=1):
         self.set_voltage(voltage=v)
         self.set_frequency(freq=f)
         self.set_output(n=n)
-        self.lockin.write("IRNG 1V")
-        self.lockin.write("SCAL 0")
+        self.lockin.write("IRNG 0.1V")
+        self.lockin.write("SCAL 9")
     
     def log_data(self, filename, sampling_spacing = 1, init_sleep = 30, **kwargs):
         """
