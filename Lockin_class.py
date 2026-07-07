@@ -1,5 +1,6 @@
 import time
 import numpy as np
+from tqdm import tqdm
 
 
 class lockin:
@@ -93,18 +94,16 @@ class lockin:
         with open(filename, "a") as file:
             file.write("\t".join(header))
             file.write("\n")
-            i = 0
-            while i < N:
+
+            p_bar = tqdm(range(N), desc="Progress", ncols=100, unit="Points")
+            for __ in p_bar:
+                phase = self.read_theta()
+                resistance = self.calculate_sample_resistance()
+                temperature = self.read_temperature(is_lakeshore=is_lakeshore)
+
                 np.savetxt(
-                    file,
-                    np.array(
-                        [
-                            self.read_theta(),
-                            self.calculate_sample_resistance(),
-                            self.read_temperature(is_lakeshore=is_lakeshore),
-                        ]
-                    ).reshape(1, -1),
-                    delimiter="\t",
+                    file, np.array([phase, resistance, temperature]).reshape(1, -1), delimiter="\t"
                 )
+
+                p_bar.set_postfix_str(f"Temperature: {temperature:.3g} K")
                 time.sleep(sampling_spacing)
-                i += 1
