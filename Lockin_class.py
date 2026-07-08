@@ -90,12 +90,14 @@ class lockin:
         else:
             print("what?")
 
+        N = int(np.ceil(N))
+
         header = ["Phase", "Resistance (Ohms)", "Temperature (K)"]
         with open(filename, "a") as file:
             file.write("\t".join(header))
             file.write("\n")
 
-            p_bar = tqdm(range(N), desc="Progress", ncols=100, unit="Points")
+            p_bar = tqdm(range(N), desc="Progress", ncols=200, unit="Points")
             for __ in p_bar:
                 phase = self.read_theta()
                 resistance = self.calculate_sample_resistance()
@@ -105,5 +107,5 @@ class lockin:
                     file, np.array([phase, resistance, temperature]).reshape(1, -1), delimiter="\t"
                 )
 
-                p_bar.set_postfix_str(f"Temperature: {temperature:.3g} K")
+                p_bar.set_postfix_str(f"Temperature: {temperature:.4g} K")
                 time.sleep(sampling_spacing)
