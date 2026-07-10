@@ -76,6 +76,9 @@ class lockin:
                 - hours
                 - days
         """
+        if is_lakeshore:
+            while self.read_temperature(is_lakeshore) != 0: 
+                time.sleep(60)
 
         time.sleep(init_sleep)
 
